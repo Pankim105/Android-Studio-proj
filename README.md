@@ -1,3 +1,4 @@
+一个简单的Android studiod
 /src/main<br>
 ├── java/com/example/myterminal<br>
 │   ├── Utils<br>
