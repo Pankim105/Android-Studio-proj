@@ -1,0 +1,22 @@
+<resources>
+    <!-- 应用元数据 -->
+    <string name="app_name">My Terminal</string>
+    <string name="app_version">v1.0.0-beta</string>
+
+    <!-- 终端界面 -->
+    <string name="input_hint">Enter command…</string>
+    <string name="btn_send">EXEC</string>
+    <string name="terminal_tab">Terminal</string>
+    <string name="file_tab">Files</string>
+    <string name="connection_tab">SSH</string>
+
+    <!-- 状态提示 -->
+    <string name="prompt_ready">[root@android] # </string>
+    <string name="error_permission">Permission denied!</string>
+    <string name="error_command">Command not found</string>
+
+    <!-- 导航菜单 -->
+    <string name="menu_new_tab">New Tab</string>
+    <string name="menu_close_tab">Close Tab</string>
+    <string name="menu_settings">Settings</string>
+</resources>

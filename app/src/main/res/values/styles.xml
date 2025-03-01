@@ -1,0 +1,40 @@
+<resources>
+    <!-- 基础主题 -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/terminal_background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <!-- 终端字体样式 -->
+    <style name="TerminalText">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/ansi_bright_white</item>
+        <item name="android:lineSpacingExtra">2sp</item>
+    </style>
+
+    <!-- 输入框样式 -->
+    <style name="TerminalInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/ansi_bright_blue</item>
+        <item name="hintTextColor">@color/ansi_bright_green</item>
+        <item name="android:textColor">@color/ansi_bright_white</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- 功能按钮样式 -->
+    <style name="TerminalButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/ansi_bright_blue</item>
+        <item name="android:textColor">@color/ansi_bright_cyan</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:padding">4dp</item>
+    </style>
+    <style name="FileButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/ansi_bright_blue</item>
+        <item name="android:textColor">@color/ansi_bright_cyan</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:padding">4dp</item>
+    </style>
+</resources>

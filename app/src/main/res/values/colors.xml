@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <!-- 应用主题色 -->
+    <color name="colorPrimary">#FF2196F3</color>
+    <color name="colorPrimaryDark">#FF1976D2</color>
+    <color name="colorAccent">#FFFF4081</color>
+
+    <!-- 终端基础色 -->
+    <color name="terminal_background">#FF000000</color>
+    <color name="terminal_foreground">#FFFFFFFF</color>
+
+    <!-- ANSI 16色配置 -->
+    <!-- 标准色 -->
+    <color name="ansi_black">#FF000000</color>
+    <color name="ansi_red">#FFCD0000</color>
+    <color name="ansi_green">#FF00CD00</color>
+    <color name="ansi_yellow">#FFCDCD00</color>
+    <color name="ansi_blue">#FF0000CD</color>
+    <color name="ansi_magenta">#FFCD00CD</color>
+    <color name="ansi_cyan">#FF00CDCD</color>
+    <color name="ansi_white">#FFE5E5E5</color>
+
+    <!-- 明亮色 -->
+    <color name="ansi_bright_black">#FF666666</color>
+    <color name="ansi_bright_red">#FFFF0000</color>
+    <color name="ansi_bright_green">#FF00FF00</color>
+    <color name="ansi_bright_yellow">#FFFFFF00</color>
+    <color name="ansi_bright_blue">#FF0000FF</color>
+    <color name="ansi_bright_magenta">#FFFF00FF</color>
+    <color name="ansi_bright_cyan">#FF00FFFF</color>
+    <color name="ansi_bright_white">#FFFFFFFF</color>
+
+    <!--UI相关-->
+    <color name="tab_active">#2196F3</color>
+    <color name="tab_inactive">#9E9E9E</color>
+
+    <color name="guideline_active">#FFE5E5E5</color>
+    <color name="guideline_inactive">#9E9E9E</color>
+
+</resources>
