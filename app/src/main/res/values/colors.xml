@@ -12,8 +12,8 @@
     <color name="colorAccent">#FFFF4081</color>
 
     <!-- 终端基础色 -->
+    <color name="filebrowser_background">#FF111111</color>
     <color name="terminal_background">#FF000000</color>
-    <color name="terminal_foreground">#FFFFFFFF</color>
 
     <!-- ANSI 16色配置 -->
     <!-- 标准色 -->

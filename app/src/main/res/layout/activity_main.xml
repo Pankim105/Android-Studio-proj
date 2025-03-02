@@ -35,32 +35,31 @@
         <!-- 增强型触控区域 -->
         <LinearLayout
             android:id="@+id/touch_area"
-            android:layout_width="12dp"
+            android:layout_width="16dp"
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:background="@android:color/transparent"
             app:layout_constraintStart_toStartOf="@id/guideline"
             app:layout_constraintEnd_toEndOf="@id/guideline"
-            android:layout_marginStart="-6dp"
-            android:layout_marginEnd="-6dp">
+            android:layout_marginStart="-8dp"
+            android:layout_marginEnd="-8dp">
 
             <!-- 可视分割线 -->
             <View
                 android:id="@+id/divider"
-                android:layout_width="2dp"
+                android:layout_width="8dp"
                 android:layout_height="match_parent"
+                android:layout_gravity="end"
                 android:background="#CCCCCC"
                 android:visibility="gone"
                 />
-
         </LinearLayout>
-
         <!-- 右窗格 -->
         <FrameLayout
             android:id="@+id/right_pane"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintStart_toStartOf="@id/guideline"
             app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

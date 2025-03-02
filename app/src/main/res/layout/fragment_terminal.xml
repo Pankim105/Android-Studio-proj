@@ -39,6 +39,8 @@
             android:hint="@string/input_hint"
             android:textColor="@color/ansi_white"
             android:textColorHint="@color/ansi_bright_black"
+            android:cursorVisible="true"
+            android:backgroundTint="@color/ansi_bright_white"
             android:imeOptions="actionSend"
             android:inputType="textNoSuggestions"/>
 
@@ -48,7 +50,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="0.14"
             android:text="@string/btn_send"
-            android:backgroundTint="@color/ansi_bright_cyan"/>
+            android:backgroundTint="@color/ansi_bright_black"/>
 
     </LinearLayout>
 

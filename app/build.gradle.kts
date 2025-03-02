@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.chaquo.python")
 }
 
 android {
@@ -12,8 +13,33 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        ndk {
+            abiFilters += setOf("arm64-v8a","x86_64")
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        chaquopy {
+            defaultConfig {
+                pip {
+                    // A requirement specifier, with or without a version number:
+                    install("scipy")
+                    install("numpy")
+                    install("torch")
+                    install("torchvision")
+                    install("matplotlib")
+//                    // An sdist or wheel filename, relative to the project directory:
+//                    install("MyPackage-1.2.3-py2.py3-none-any.whl")
+//
+//                    // A directory containing a setup.py, relative to the project
+//                    // directory (must contain at least one slash):
+//                    install("./MyPackage")
+//
+//                    // "-r"` followed by a requirements filename, relative to the
+//                    // project directory:
+//                    install("-r", "requirements.txt")
+                }
+            }
+        }
     }
 
     buildTypes {

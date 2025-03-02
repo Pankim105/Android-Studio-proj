@@ -76,7 +76,7 @@ public class TabManager {
                 transaction.hide(fileBrowserFragment);
                 this.isFileBroswerON = false;
             } else {
-                ((FileBrowserFragment) fileBrowserFragment).resetRootNodeWhenClick();//重置目录根节点
+                //((FileBrowserFragment) fileBrowserFragment).resetRootNodeWhenClick();//重置目录根节点
                 transaction.show(fileBrowserFragment);
                 this.isFileBroswerON = true;
             }

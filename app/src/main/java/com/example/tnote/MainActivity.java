@@ -1,8 +1,11 @@
 package com.example.tnote;
 
 import android.os.Bundle;
+
+import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,6 +15,9 @@ import com.example.tnote.Utils.AnimGuideline;
 import com.example.tnote.filebrowser.FileBrowserFragment;
 
 public class MainActivity extends AppCompatActivity {
+
+
+
     // 界面组件
     private TabManager tabManager;
     private View divider;  // 分割线视图
@@ -22,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -68,13 +75,17 @@ public class MainActivity extends AppCompatActivity {
      * 更新分割线样式
      * @param isDragging 是否处于拖动状态
      */
+
     private void updateDividerStyle(boolean isDragging) {
         int colorRes = isDragging ? R.color.guideline_active : R.color.guideline_inactive;
-        int widthDp = isDragging ? 4 : 2;
-
+        int widthDp = isDragging ? 4: 2;
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)divider.getLayoutParams();
+        params.gravity = Gravity.END;
+        params.width = dpToPx(widthDp);
         divider.setBackgroundColor(getResources().getColor(colorRes));
-        divider.getLayoutParams().width = dpToPx(widthDp);
+
         divider.requestLayout();
+
     }
 
     /**
@@ -133,7 +144,8 @@ public class MainActivity extends AppCompatActivity {
             if (!isRightPaneVisible) {
                 divider.setVisibility(View.VISIBLE);
                 isRightPaneVisible = true;
-                guideline.toggleVisibility(true, 0.7f);  // 显示并设置到70%位置
+                guideline.toggleVisibility(true, 0.5f);  // 显示并设置到50%位置
+                updateDividerStyle(false);
             } else {
                 isRightPaneVisible = false;
                 guideline.toggleVisibility(true, 1.0f);  // 隐藏到100%位置

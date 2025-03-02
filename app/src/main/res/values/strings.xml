@@ -14,6 +14,7 @@
     <string name="prompt_ready">[root@android] # </string>
     <string name="error_permission">Permission denied!</string>
     <string name="error_command">Command not found</string>
+    <string name="hint">提示</string>
 
     <!-- 导航菜单 -->
     <string name="menu_new_tab">New Tab</string>

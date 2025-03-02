@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 public class TerminalSession {
     private static final String TAG = "TerminalSession";
@@ -30,11 +31,13 @@ public class TerminalSession {
     private OutputStream processOut;
     private InputStream processIn;
     private InputStream processErr;
+    private boolean isShell;
 
     public TerminalSession(MainActivity activity,String appDir) {
         this.activityRef = new WeakReference<>(activity);
         this.appDir = appDir;
         this.currentDirectory = appDir;
+        this.isShell = true;
     }
     public interface OutputListener {
         void onOutputReceived(String output);
@@ -82,12 +85,25 @@ public class TerminalSession {
         }
     }
 
-    public synchronized void executeCommand(String command) {
+    public synchronized boolean executeCommand(String command) {
+        if(isShell) return shellExec(command);
+        else return true;
+    }
+    private boolean shellExec(String command){
+        if (!isRunning.get() || processOut == null) return true;
         if (command.equals("cd ~")){
             command="cd "+appDir;
         }
-        if (!isRunning.get() || processOut == null) return;
 
+        if (command.startsWith("cd ..")){
+            String relativeDir = command.split("/",2)[1];
+            Log.println(Log.INFO,"../dir",relativeDir);
+            command="cd "+ Objects.requireNonNull((new File(appDir)).getParentFile()).getAbsolutePath()+"/"+relativeDir;
+
+        }
+
+
+        if(command.startsWith("python")||command.startsWith("python3")) return true;
         try {
             processOut.write((command + "\n").getBytes());
             processOut.flush();
@@ -96,43 +112,39 @@ public class TerminalSession {
         }
         finally {;
             if(command.startsWith("cd")&&!command.equals("cd ~")) {
-                System.out.println("i am at cd ....");
                 handleCdCommand(command);
             }
-
-
         }
+        return true;
     }
 
     private void handleCdCommand(String command) {
         try {
-            // 解析目标路径
             String targetPath = command.substring(3).trim();
             File newDir = new File(targetPath).getCanonicalFile();
-            System.out.println(newDir.getAbsolutePath());
             if (newDir.isDirectory()) {
+                Log.println(Log.INFO, "cd", "cd start");
                 currentDirectory = newDir.getAbsolutePath();
                 notifyDirectoryChanged(currentDirectory);
+                Log.println(Log.INFO, "cd", "cd finish");
             }
-        } catch (IOException e) {
-            Log.e(TAG, "CD命令路径解析失败", e);
-
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     private void notifyDirectoryChanged(String newPath) {
         mainHandler.post(() -> {
             MainActivity activity = activityRef.get();
-            System.out.println("notifyDirectoryChanged 中获取的 Activity: " + activity);
             if (activity != null && !activity.isDestroyed()) {
                 FileBrowserFragment fragment = activity.getFileBrowserFragment();
                 if (fragment != null) {
                     fragment.setCurrentDirectory(newPath);
+
                 }
             }
         });
     }
-
     public void terminate() {
         isRunning.set(false);
 
@@ -153,9 +165,7 @@ public class TerminalSession {
             outputThread.interrupt();
         }
     }
-
     public boolean isAlive() {
         return isRunning.get() && process != null && process.isAlive();
     }
-
 }

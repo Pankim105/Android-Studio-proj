@@ -20,6 +20,8 @@ import androidx.fragment.app.Fragment;
 import com.example.tnote.MainActivity;
 import com.example.tnote.R;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class TerminalFragment extends Fragment {
     private TerminalSession terminalSession;
     private MainActivity mainActivity;
@@ -30,7 +32,7 @@ public class TerminalFragment extends Fragment {
     private String inputCache;
     private CommandHistory commandHistory = new CommandHistory();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private boolean isExecuting = false;
+    private final AtomicBoolean isExecuting = new AtomicBoolean(false);
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -97,20 +99,23 @@ public class TerminalFragment extends Fragment {
     }
 
     private void executeCurrentCommand() {
-        if (isExecuting) return;
+        if (isExecuting.get()) return;
 
         String command = etInput.getText().toString().trim();
         if (!command.isEmpty()) {
-            isExecuting = true;
+            isExecuting.set(true);
             appendToOutput("> " + command + "\n");
             commandHistory.add(command);
+            if(command.equals("clear")){
+                tvOutput.setText("");
+            }
+            if(terminalSession.executeCommand(command)) {
+                mainHandler.post(() -> {
+                    etInput.setText("");
+                    isExecuting.set(false);
+                });
 
-            terminalSession.executeCommand(command);
-
-            mainHandler.postDelayed(() -> {
-                etInput.setText("");
-                isExecuting = false;
-            }, 100);
+            }
         }
     }
 
