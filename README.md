@@ -1,6 +1,3 @@
-
-一个集成终端模拟器、文件浏览器和Python执行环境的Android应用，专为移动端开发者和技术爱好者设计。
-
 ## 主要功能
 
 ### 🖥️ 终端模拟器
@@ -38,32 +35,25 @@
 - Java 11+
 - Chaquopy Python插件（已集成）
 
-### 安装步骤
-```bash
-git clone https://github.com/yourusername/tnote.git
-cd tnote
-# 使用Android Studio打开项目
-# 连接Android设备或启动模拟器
-# 点击运行按钮
-使用指南
-终端操作
+
+##使用指南
+###终端操作
 输入Shell命令后按回车执行
 使用python命令进入Python模式
 输入exit()返回Shell
 长按输入框滑动查看历史命令
 双指捏合调整字体大小
-文件管理
+###文件管理
 终端输入cd [路径]同步目录
 点击文件浏览器中的目录进行导航
 长按文件/目录弹出操作菜单
 使用右上角按钮创建新文件
-界面操作
+###界面操作
 拖动分隔线调整窗格比例
 双击分隔线切换单/双窗模式
 横屏时自动进入分屏模式
-滑动边缘呼出快速命令面板
-技术架构
-核心组件
+
+###核心组件
 MainActivity：管理窗口布局和导航
 TerminalFragment：终端界面与逻辑控制
 ShellSession：本地Shell进程管理
