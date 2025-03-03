@@ -3,7 +3,6 @@ package com.example.tnote.filebrowser;
 
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -104,7 +103,6 @@ public class FileBrowserFragment extends Fragment {
             FileBrowserAdapter.TreeNode parentNode = new FileBrowserAdapter.TreeNode(
                     directory.getParentFile(), 999);
             parentNode.setHasLoadedChildren(true);
-            parentNode.setExpanded(true);
             newNodes.add(parentNode);
         }
         // 构建当前层级节点

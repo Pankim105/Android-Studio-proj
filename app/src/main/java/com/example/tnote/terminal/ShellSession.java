@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.example.tnote.MainActivity;
+import com.example.tnote.Utils.Interface.Session;
 import com.example.tnote.filebrowser.FileBrowserFragment;
 
 import java.io.BufferedReader;
@@ -17,7 +18,7 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-public class TerminalSession {
+public class ShellSession implements Session {
     private static final String TAG = "TerminalSession";
     private String appDir;
     private String currentDirectory;
@@ -29,21 +30,22 @@ public class TerminalSession {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     // 输入输出流
     private OutputStream processOut;
+    private OutputListener outputListener;
     private InputStream processIn;
     private InputStream processErr;
     private boolean isShell;
 
-    public TerminalSession(MainActivity activity,String appDir) {
+    public ShellSession(MainActivity activity, String appDir) {
         this.activityRef = new WeakReference<>(activity);
         this.appDir = appDir;
         this.currentDirectory = appDir;
         this.isShell = true;
     }
-    public interface OutputListener {
-        void onOutputReceived(String output);
-        void onError(String error);
-    }
 
+
+
+
+    @Override
     public void start(OutputListener listener) {
         try {
             process = Runtime.getRuntime().exec("/system/bin/sh");
@@ -66,26 +68,8 @@ public class TerminalSession {
         }
     }
 
-    private void readStream(InputStream stream, OutputListener listener, boolean isError) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
-            char[] buffer = new char[1024];
-            int bytesRead;
-            while (isRunning.get() && (bytesRead = reader.read(buffer)) != -1) {
-                String output = new String(buffer, 0, bytesRead);
-                if (isError) {
-                    listener.onError(output);
-                } else {
-                    listener.onOutputReceived(output);
-                }
-            }
-        } catch (IOException e) {
-            if (isRunning.get()) {
-                listener.onError("IO Error: " + e.getMessage());
-            }
-        }
-    }
-
-    public synchronized boolean executeCommand(String command) {
+    @Override
+    public boolean executeCommand(String command) {
         if(isShell) return shellExec(command);
         else return true;
     }
@@ -96,6 +80,7 @@ public class TerminalSession {
         }
 
         if (command.startsWith("cd ..")){
+            if (command.equals("cd ..")) command = command+"/";
             String relativeDir = command.split("/",2)[1];
             Log.println(Log.INFO,"../dir",relativeDir);
             command="cd "+ Objects.requireNonNull((new File(appDir)).getParentFile()).getAbsolutePath()+"/"+relativeDir;
@@ -117,34 +102,7 @@ public class TerminalSession {
         }
         return true;
     }
-
-    private void handleCdCommand(String command) {
-        try {
-            String targetPath = command.substring(3).trim();
-            File newDir = new File(targetPath).getCanonicalFile();
-            if (newDir.isDirectory()) {
-                Log.println(Log.INFO, "cd", "cd start");
-                currentDirectory = newDir.getAbsolutePath();
-                notifyDirectoryChanged(currentDirectory);
-                Log.println(Log.INFO, "cd", "cd finish");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void notifyDirectoryChanged(String newPath) {
-        mainHandler.post(() -> {
-            MainActivity activity = activityRef.get();
-            if (activity != null && !activity.isDestroyed()) {
-                FileBrowserFragment fragment = activity.getFileBrowserFragment();
-                if (fragment != null) {
-                    fragment.setCurrentDirectory(newPath);
-
-                }
-            }
-        });
-    }
+    @Override
     public void terminate() {
         isRunning.set(false);
 
@@ -165,7 +123,53 @@ public class TerminalSession {
             outputThread.interrupt();
         }
     }
+    @Override
     public boolean isAlive() {
         return isRunning.get() && process != null && process.isAlive();
+    }
+
+    private void readStream(InputStream stream, OutputListener listener, boolean isError) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+            char[] buffer = new char[1024];
+            int bytesRead;
+            while (isRunning.get() && (bytesRead = reader.read(buffer)) != -1) {
+                String output = new String(buffer, 0, bytesRead);
+                if (isError) {
+                    listener.onError(output);
+                } else {
+                    listener.onOutputReceived(output);
+                }
+            }
+        } catch (IOException e) {
+            if (isRunning.get()) {
+                listener.onError("IO Error: " + e.getMessage());
+            }
+        }
+    }
+
+    private void handleCdCommand(String command) {
+        try {
+            String targetPath = command.substring(3).trim();
+            File newDir = new File(targetPath).getCanonicalFile();
+            if (newDir.isDirectory()) {
+                currentDirectory = newDir.getAbsolutePath();
+                notifyDirectoryChanged(currentDirectory);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void notifyDirectoryChanged(String newPath) {
+        mainHandler.post(() -> {
+            MainActivity activity = activityRef.get();
+            if (activity != null && !activity.isDestroyed()) {
+                FileBrowserFragment fragment = activity.getFileBrowserFragment();
+                if (fragment != null) {
+                    fragment.setCurrentDirectory(newPath);
+
+                }
+            }
+        });
     }
 }

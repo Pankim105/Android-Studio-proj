@@ -26,13 +26,12 @@
         android:fillColor="#E3F2FD"
         android:pathData="M7 9h10v3H7z"/>
 
-    <path
-        android:fillColor="#BBDEFB"
-        android:pathData="M6 14h9v2H6z"/>
+
+
 
     <!-- 增强折角阴影 -->
     <path
-        android:fillColor="#616161"
-        android:pathData="M20 8v10H4V6h5l1 2h10c0.5 0 1 0.5 1 1z"/>
+        android:fillColor="#666666"
+        android:pathData="M20 8v10H4V6h5l1 2h10c0.5 0 1 0 0 0"/>
 
 </vector>

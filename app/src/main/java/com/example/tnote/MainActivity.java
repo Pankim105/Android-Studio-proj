@@ -14,6 +14,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import com.example.tnote.Utils.AnimGuideline;
 import com.example.tnote.filebrowser.FileBrowserFragment;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class MainActivity extends AppCompatActivity {
 
 
@@ -24,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private AnimGuideline guideline;  // 自定义Guideline
     private ConstraintLayout dualPaneContainer;  // 双窗格容器
     private FrameLayout rightPane;  // 右侧窗格
-    private boolean isRightPaneVisible = false;  // 右侧窗格可见状态
+    private AtomicBoolean isRightPaneVisible = new AtomicBoolean(false);  // 右侧窗格可见状态
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,13 +61,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDragEnd(float finalPercent) {
                 updateDividerStyle(false);  // 拖动结束恢复分割线样式
-                updatePaneVisibility(finalPercent < 0.95f);  // 根据位置更新窗格可见性
             }
 
             @Override
             public void onVisibilityChanged(boolean visible) {
-                isRightPaneVisible = visible;
                 divider.setVisibility(visible ? View.VISIBLE : View.GONE);
+                updatePaneVisibility(isRightPaneVisible.get());
             }
         });
         guideline.setupDragBehavior();  // 启用拖动手势
@@ -83,9 +84,6 @@ public class MainActivity extends AppCompatActivity {
         params.gravity = Gravity.END;
         params.width = dpToPx(widthDp);
         divider.setBackgroundColor(getResources().getColor(colorRes));
-
-        divider.requestLayout();
-
     }
 
     /**
@@ -93,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
      * @param visible 是否可见
      */
     private void updatePaneVisibility(boolean visible) {
-        isRightPaneVisible = visible;
+        isRightPaneVisible.set(visible);
         rightPane.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
@@ -141,15 +139,16 @@ public class MainActivity extends AppCompatActivity {
         // 文件浏览器按钮
         findViewById(R.id.btn_filebrowser).setOnClickListener(v -> {
             tabManager.switchTab(TabManager.TabType.FILE_BROWSER);
-            if (!isRightPaneVisible) {
+            if (!isRightPaneVisible.get()) {
                 divider.setVisibility(View.VISIBLE);
-                isRightPaneVisible = true;
                 guideline.toggleVisibility(true, 0.5f);  // 显示并设置到50%位置
                 updateDividerStyle(false);
+                updatePaneVisibility(true);
             } else {
-                isRightPaneVisible = false;
+                isRightPaneVisible.set(false);
                 guideline.toggleVisibility(true, 1.0f);  // 隐藏到100%位置
                 divider.setVisibility(View.GONE);
+                updatePaneVisibility(false);
             }
         });
     }

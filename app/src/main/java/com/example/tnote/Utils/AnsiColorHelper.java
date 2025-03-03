@@ -1,5 +1,9 @@
-package com.example.tnote.terminal;
+package com.example.tnote.Utils;
 
+import static android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE;
+
+import android.graphics.Color;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -37,11 +41,17 @@ public class AnsiColorHelper {
                         int start = builder.length();
                         builder.append(content);
                         builder.setSpan(new ForegroundColorSpan(ANSI_COLORS[colorCode - 30]),
-                                start, builder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                start, builder.length(), SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 } catch (NumberFormatException ignored) {}
             }
         }
         return builder;
+    }
+    public static Spanned formatRed(CharSequence text) {
+        SpannableString spannable = new SpannableString(text);
+        spannable.setSpan(new ForegroundColorSpan(Color.RED),
+                0, text.length(), SPAN_EXCLUSIVE_EXCLUSIVE);
+        return spannable;
     }
 }

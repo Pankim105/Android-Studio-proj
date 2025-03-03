@@ -9,6 +9,11 @@
     <string name="terminal_tab">Terminal</string>
     <string name="file_tab">Files</string>
     <string name="connection_tab">SSH</string>
+    <string name="python_info">This python3.8!
+        Packages including
+        ["scipy","numpy","torch","torchvision","matplotlib"]
+        are installed.
+    </string>
 
     <!-- 状态提示 -->
     <string name="prompt_ready">[root@android] # </string>
