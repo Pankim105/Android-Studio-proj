@@ -33,4 +33,4 @@ def execute_code(code):
     stderr_val = captured_err.getvalue().strip()
 
     # 根据条件返回结果
-    return stdout_val if stdout_val else stderr_val
+    return stderr_val if stderr_val else stdout_val

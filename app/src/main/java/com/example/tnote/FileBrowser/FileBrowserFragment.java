@@ -1,5 +1,5 @@
 // FileBrowserFragment.java
-package com.example.tnote.filebrowser;
+package com.example.tnote.FileBrowser;
 
 import android.os.Bundle;
 import android.os.Handler;

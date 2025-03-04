@@ -12,7 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.example.tnote.Utils.AnimGuideline;
-import com.example.tnote.filebrowser.FileBrowserFragment;
+import com.example.tnote.FileBrowser.FileBrowserFragment;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

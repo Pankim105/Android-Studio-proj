@@ -1,11 +1,10 @@
-package com.example.tnote.terminal;
+package com.example.tnote.Terminal;
 
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Spanned;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -21,7 +20,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.tnote.MainActivity;
 import com.example.tnote.R;
-import com.example.tnote.Utils.Interface.Session;
+import com.example.tnote.Utils.Interfaces.Session;
 import com.example.tnote.Utils.AnsiColorHelper;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -73,7 +72,7 @@ public class TerminalFragment extends Fragment {
         pythonSession = new PythonSession(mainActivity,mainHandler);
 
         // 默认启动Shell会话
-        switchToSession(shellSession, "=== 终端会话已启动 ===");
+        switchToSession(shellSession, "=== Terminal Shell Session===");
         shellSession.executeCommand("cd " + appDir); // 进入应用目录
     }
 
@@ -165,10 +164,10 @@ public class TerminalFragment extends Fragment {
 
     private boolean handleSessionSwitch(String command) {
         if (currentSession == shellSession && ("python".equalsIgnoreCase(command))||"python3".equalsIgnoreCase(command)) {
-            switchToSession(pythonSession, "=== 进入Python交互模式 ===\n输入 exit() 返回终端\n\n"+getString(R.string.python_info));
+            switchToSession(pythonSession, "=== Python Shell Session ===\nEnter exit() Back To Shell\n\n"+getString(R.string.python_info));
             return true;
         } else if (currentSession == pythonSession && "exit()".equals(command)) {
-            switchToSession(shellSession, "=== 返回终端模式 ===");
+            switchToSession(shellSession, "=== Shell Session Return ===");
             return true;
         }
         return false;

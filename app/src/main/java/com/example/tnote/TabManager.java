@@ -6,7 +6,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.example.tnote.filebrowser.FileBrowserFragment;
+import com.example.tnote.FileBrowser.FileBrowserFragment;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -93,7 +93,7 @@ public class TabManager {
     private Fragment createFragmentForTab(TabType tabType) {
         switch (tabType) {
             case TERMINAL:
-                return new com.example.tnote.terminal.TerminalFragment();
+                return new com.example.tnote.Terminal.TerminalFragment();
             case FILE_BROWSER:
                 return new FileBrowserFragment();
             default:

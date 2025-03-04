@@ -20,7 +20,9 @@
     <string name="error_permission">Permission denied!</string>
     <string name="error_command">Command not found</string>
     <string name="hint">提示</string>
-
+    <string name="save_success">保存成功</string>
+    <string name="save_failed">保存失败</string>
+    <string name="file_read_error">文件不存在</string>
     <!-- 导航菜单 -->
     <string name="menu_new_tab">New Tab</string>
     <string name="menu_close_tab">Close Tab</string>

@@ -1,5 +1,5 @@
 // FileBrowserAdapter.java
-package com.example.tnote.filebrowser;
+package com.example.tnote.FileBrowser;
 
 import android.view.LayoutInflater;
 import android.view.View;

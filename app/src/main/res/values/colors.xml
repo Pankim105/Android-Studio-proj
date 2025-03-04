@@ -6,6 +6,7 @@
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
+
     <!-- 应用主题色 -->
     <color name="colorPrimary">#FF2196F3</color>
     <color name="colorPrimaryDark">#FF1976D2</color>
@@ -42,5 +43,16 @@
 
     <color name="guideline_active">#FFE5E5E5</color>
     <color name="guideline_inactive">#9E9E9E</color>
+    <!--Editor相关-->
+    <!-- Syntax Colors -->
+    <color name="syntax_comment">#6A9955</color>
+    <color name="syntax_string">#CE9178</color>
+    <color name="syntax_keyword">#569CD6</color>
 
+    <!-- Markdown Colors -->
+    <!-- Markdown Syntax Colors -->
+    <color name="syntax_header">#FF5733</color>      <!-- 标题颜色 -->
+    <color name="syntax_bold">#C70039</color>        <!-- 粗体颜色 -->
+    <color name="syntax_italic">#900C3F</color>      <!-- 斜体颜色 -->
+    <color name="syntax_link">#1E90FF</color>        <!-- 链接颜色 -->
 </resources>

@@ -1,28 +1,27 @@
-package com.example.tnote.terminal;
+// PythonSession.java - Python交互会话实现
+package com.example.tnote.Terminal;
 
-import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
-
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 import com.example.tnote.MainActivity;
-import com.example.tnote.Utils.Interface.Session;
-
-
+import com.example.tnote.Utils.Interfaces.Session;
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Python交互会话实现类，使用ChaQuo Python库执行Python代码
+ */
 public class PythonSession implements Session {
-    private final Handler mainHandler;
-    private OutputListener outputListener;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final AtomicBoolean isAlive = new AtomicBoolean(false);
-    private WeakReference<MainActivity> activityRef;
+    private final Handler mainHandler;         // 主线程Handler用于UI更新
+    private OutputListener outputListener;     // 输出监听器
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(); // 单线程执行器
+    private final AtomicBoolean isAlive = new AtomicBoolean(false); // 会话存活状态
+    private WeakReference<MainActivity> activityRef; // 对Activity的弱引用，防止内存泄漏
 
     public PythonSession(MainActivity activity, Handler mainHandler) {
         this.mainHandler = mainHandler;
@@ -33,7 +32,7 @@ public class PythonSession implements Session {
     public void start(OutputListener listener) {
         this.outputListener = listener;
         this.isAlive.set(true);
-        sendSystemMessage("Python交互模式已激活");
+        sendSystemMessage("Python Session Started");
     }
 
     @Override
@@ -42,24 +41,30 @@ public class PythonSession implements Session {
 
         executor.execute(() -> {
             try {
-                if (!Python.isStarted()){
+                // 初始化Python环境
+                if (!Python.isStarted()) {
                     Python.start(new AndroidPlatform(activityRef.get()));
                 }
                 Python py = Python.getInstance();
+
+                // 设置工作目录到应用文件目录
                 PyObject os = py.getModule("os");
                 os.get("chdir").call(PyObject.fromJava(activityRef.get().getFilesDir().getAbsolutePath()));
+
+                // 调用Python执行模块
                 PyObject module = py.getModule("executor");
-                Log.println(Log.INFO,"input:",command);
+                Log.i("PythonSession", "command_exec: " + command);
                 PyObject result = module.callAttr("execute_code", command);
-                Log.println(Log.INFO,"output:", String.valueOf(result));
-                Log.println(Log.INFO,"output:", String.valueOf(result.type()));
-                String outOrErro= String.valueOf(result);
+
+                // 处理执行结果
+                String output = String.valueOf(result);
                 mainHandler.post(() -> {
-                    if (!outOrErro.isEmpty())
-                        outputListener.onOutputReceived(outOrErro+ "\n");
+                    if (!output.isEmpty()) {
+                        outputListener.onOutputReceived(output + "\n");
+                    }
                 });
             } catch (Exception e) {
-                mainHandler.post(() -> outputListener.onError("执行错误: " + e.getMessage()));
+                mainHandler.post(() -> outputListener.onError("Exec Error: " + e.getMessage()));
             }
         });
         return true;
@@ -67,9 +72,9 @@ public class PythonSession implements Session {
 
     @Override
     public void terminate() {
-        executor.shutdownNow();
+        executor.shutdownNow(); // 立即关闭执行器
         isAlive.set(false);
-        sendSystemMessage("Python会话已终止");
+        sendSystemMessage("Python Session Ended!");
     }
 
     @Override
@@ -77,7 +82,11 @@ public class PythonSession implements Session {
         return isAlive.get();
     }
 
+    /**
+     * 发送系统消息到输出界面
+     * @param message 系统消息内容
+     */
     private void sendSystemMessage(String message) {
-        mainHandler.post(() -> outputListener.onOutputReceived("\n[系统] " + message + "\n"));
+        mainHandler.post(() -> outputListener.onOutputReceived("\nNotify:" + message + "\n"));
     }
 }

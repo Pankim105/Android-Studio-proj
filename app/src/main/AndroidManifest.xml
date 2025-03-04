@@ -28,6 +28,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- 添加测试用 Activity -->
+        <activity android:name=".testActivity"
+            android:label="Test Activity"
+            android:exported="true" />
 
     </application>
 </manifest>

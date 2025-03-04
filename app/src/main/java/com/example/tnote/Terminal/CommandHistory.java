@@ -1,4 +1,4 @@
-package com.example.tnote.terminal;
+package com.example.tnote.Terminal;
 import java.util.ArrayList;
 import java.util.List;
 
