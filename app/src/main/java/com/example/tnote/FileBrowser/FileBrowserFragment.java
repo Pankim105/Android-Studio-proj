@@ -123,10 +123,12 @@ public class FileBrowserFragment extends Fragment {
                 creatFile();
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         });
     }
-    public void creatFile() throws IOException {
+    public void creatFile() throws IOException, InterruptedException {
         String Name = fileName.getText().toString();
         File file = new File(MainActivity.getAppDir(),Name);
         Log.println(Log.INFO,"Check Save Path", file.getAbsolutePath());

@@ -36,10 +36,18 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout rightPane;  // 右侧窗格
     private AtomicBoolean isRightPaneVisible = new AtomicBoolean(false);  // 右侧窗格可见状态
     private static volatile File appDir;
+
     //同步
     //guidline调整同步
     public static Lock guidelineLock = new ReentrantLock();
     public static Condition guidelineCondition = guidelineLock.newCondition();
+
+    //左右窗口Fragment同步
+    public static Lock leftPaneLock = new ReentrantLock();
+    public static Condition leftPaneCondition = guidelineLock.newCondition();
+    public static Lock rightPaneLock = new ReentrantLock();
+    public static Condition rightPaneCondition = guidelineLock.newCondition();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -54,7 +62,11 @@ public class MainActivity extends AppCompatActivity {
         rightPane = findViewById(R.id.right_pane);
 
         initialGuildeline();  // 初始化Guideline
-        initializeTabManager(savedInstanceState);  // 初始化标签管理器
+        try {
+            initializeTabManager(savedInstanceState);  // 初始化标签管理器
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         setupButtonListeners();  // 设置按钮监听
     }
 
@@ -127,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 初始化标签管理器
      */
-    private void initializeTabManager(Bundle savedInstanceState) {
+    private void initializeTabManager(Bundle savedInstanceState) throws InterruptedException {
         tabManager = new TabManager(
                 findViewById(R.id.btn_terminal),
                 findViewById(R.id.btn_filebrowser),
@@ -148,13 +160,21 @@ public class MainActivity extends AppCompatActivity {
     private void setupButtonListeners() {
         // 终端按钮
         findViewById(R.id.btn_terminal).setOnClickListener(v ->{
+            try {
                 tabManager.switchTab(TabManager.TabType.TERMINAL);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             EditorFragment editorFragment = (EditorFragment) getSupportFragmentManager().findFragmentById(R.id.editor);
         });
 
         // 文件浏览器按钮
         findViewById(R.id.btn_filebrowser).setOnClickListener(v -> {
-            tabManager.switchTab(TabManager.TabType.FILE_BROWSER);
+            try {
+                tabManager.switchTab(TabManager.TabType.FILE_BROWSER);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             if (!isRightPaneVisible.get()) {
                 divider.setVisibility(View.VISIBLE);
                 guideline.toggleVisibility(true, 0.5f);  // 显示并设置到50%位置
