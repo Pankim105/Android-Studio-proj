@@ -48,7 +48,7 @@ public class EditorFragmentTest {
 //               throw new RuntimeException(e);
 //           }
 
-           Fragment fragment = new EditorFragment();
+            Fragment fragment = new EditorFragment();
             activity.getSupportFragmentManager().beginTransaction()
                     .replace(R.id.left_pane, fragment) // 确保替换到正确的容器
                     .commitNow();

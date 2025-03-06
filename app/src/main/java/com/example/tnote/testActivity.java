@@ -9,8 +9,9 @@ import android.widget.FrameLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import android.widget.EditText;
-import com.example.tnote.Editor.EditorFragment;
+
 import com.example.tnote.Utils.AnimGuideline;
+import com.example.tnote.Utils.TabManager;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

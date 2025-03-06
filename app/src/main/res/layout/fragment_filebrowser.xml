@@ -1,8 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.recyclerview.widget.RecyclerView
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rv_file_list"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:scrollbars="vertical"
-    android:background="@color/filebrowser_background"/>
+    android:layout_height="match_parent">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_file_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="vertical"
+        android:background="@color/filebrowser_background"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_file_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="80dp"
+        android:layout_marginStart="80dp"
+        android:layout_marginEnd="30dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#222222"
+        app:cardElevation="8dp"
+        app:cardCornerRadius="12dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#333333">
+        <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+            <EditText
+                android:id="@+id/et_file_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="文件名"
+                android:inputType="text"
+                android:textColor="#DDDDDD"
+                android:textColorHint="#777777"
+                android:backgroundTint="#555555"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:layout_marginTop="16dp">
+                <Button
+                    android:id="@+id/btn_cancel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="取消"
+                    android:textColor="#DDDDDD"
+                    style="?attr/materialButtonOutlinedStyle"
+                    app:strokeColor="#555555"/>
+                <Button
+                    android:id="@+id/btn_confirm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="确定"
+                    android:textColor="#DDDDDD"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="#333333"/>
+            </LinearLayout>
+    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_create_file"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_input_add"
+        app:fabSize="mini" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

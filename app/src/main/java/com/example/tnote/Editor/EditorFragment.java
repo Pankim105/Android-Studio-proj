@@ -30,13 +30,14 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 代码编辑器核心Fragment，负责协调文件操作、文本编辑和界面交互逻辑
+ * 文本编辑器核心Fragment，负责协调文件操作、文本编辑和界面交互逻辑
  * 主要功能：
  * - 通过文件路径加载/保存文本内容
  * - 实时语法高亮显示
  * - 编辑状态跟踪（未保存修改标记）
  * - 基础编辑器配置（字体、滚动等）
  */
+
 public class EditorFragment extends Fragment {
     // UI组件
     private EditText editor;  // 核心文本编辑区域
@@ -49,13 +50,13 @@ public class EditorFragment extends Fragment {
     private SyntaxHighlightManager highlightManager; // 语法高亮处理器
     private KeyBindingHandler keyHandler;    // 快捷键处理器
     private AtomicBoolean isTmpFileSaved;
-    public EditorFragment() {
-        currentFile = null;
+    public EditorFragment(File file) {
+        currentFile = file;
     }
 
 
-    public EditorFragment(File file) {
-        currentFile = file;
+    public EditorFragment() {
+        currentFile=null;
     }
 
     @Override

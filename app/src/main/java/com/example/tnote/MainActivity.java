@@ -2,6 +2,7 @@ package com.example.tnote;
 
 import android.os.Bundle;
 
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -10,29 +11,42 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.fragment.app.FragmentManager;
 
+import com.example.tnote.Editor.EditorFragment;
 import com.example.tnote.Utils.AnimGuideline;
 import com.example.tnote.FileBrowser.FileBrowserFragment;
+import com.example.tnote.Utils.TabManager;
 
+import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MainActivity extends AppCompatActivity {
 
 
 
     // 界面组件
-    private TabManager tabManager;
+    public TabManager tabManager;
     private View divider;  // 分割线视图
     private AnimGuideline guideline;  // 自定义Guideline
     private ConstraintLayout dualPaneContainer;  // 双窗格容器
     private FrameLayout rightPane;  // 右侧窗格
     private AtomicBoolean isRightPaneVisible = new AtomicBoolean(false);  // 右侧窗格可见状态
-
+    private static volatile File appDir;
+    //同步
+    //guidline调整同步
+    public static Lock guidelineLock = new ReentrantLock();
+    public static Condition guidelineCondition = guidelineLock.newCondition();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //初始化app目录位置
+        appDir = getFilesDir();
 
         // 初始化视图组件
         dualPaneContainer = findViewById(R.id.dual_pane_container);
@@ -133,8 +147,10 @@ public class MainActivity extends AppCompatActivity {
      */
     private void setupButtonListeners() {
         // 终端按钮
-        findViewById(R.id.btn_terminal).setOnClickListener(v ->
-                tabManager.switchTab(TabManager.TabType.TERMINAL));
+        findViewById(R.id.btn_terminal).setOnClickListener(v ->{
+                tabManager.switchTab(TabManager.TabType.TERMINAL);
+            EditorFragment editorFragment = (EditorFragment) getSupportFragmentManager().findFragmentById(R.id.editor);
+        });
 
         // 文件浏览器按钮
         findViewById(R.id.btn_filebrowser).setOnClickListener(v -> {
@@ -151,6 +167,14 @@ public class MainActivity extends AppCompatActivity {
                 updatePaneVisibility(false);
             }
         });
+    }
+    public static File getAppDir(){
+        return appDir;
+    }
+    public void setGuideLinePosition(float percentage){
+        guidelineLock.lock();
+        guideline.toggleVisibility(true,percentage);
+        guidelineLock.unlock();
     }
 
     @Override

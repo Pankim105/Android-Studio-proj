@@ -12,6 +12,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.constraintlayout.widget.Guideline;
 
+import com.example.tnote.MainActivity;
+
 /**
  * 自定义可动画化和可拖动的Guideline组件
  * 功能特性：

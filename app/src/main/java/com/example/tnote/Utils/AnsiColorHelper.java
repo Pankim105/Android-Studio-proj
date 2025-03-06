@@ -8,46 +8,59 @@ import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class AnsiColorHelper {
-    // ANSI颜色代码到Android颜色的映射
     private static final int[] ANSI_COLORS = {
-            0xFF000000, // 30: Black
-            0xFFCC0000, // 31: Red
-            0xFF4E9A06, // 32: Green
-            0xFFC4A000, // 33: Yellow
-            0xFF3465A4, // 34: Blue
-            0xFF75507B, // 35: Magenta
-            0xFF06989A, // 36: Cyan
-            0xFFD3D7CF  // 37: White
+            0xFF000000, 0xFFCC0000, 0xFF4E9A06, 0xFFC4A000,
+            0xFF3465A4, 0xFF75507B, 0xFF06989A, 0xFFD3D7CF
     };
 
     public static Spanned convertAnsiToSpanned(String text) {
         SpannableStringBuilder builder = new SpannableStringBuilder();
-        String[] parts = text.split("\u001B\\[");
-        builder.append(parts[0]);
+        Pattern ansiPattern = Pattern.compile("\u001B\\[([0-9;]*)m");
+        Matcher matcher = ansiPattern.matcher(text);
 
-        for (int i = 1; i < parts.length; i++) {
-            int mIndex = parts[i].indexOf('m');
-            if (mIndex == -1) continue;
+        int lastAppendIndex = 0;
+        while (matcher.find()) {
+            // 添加 ANSI 代码之前的文本
+            builder.append(text.substring(lastAppendIndex, matcher.start()));
 
-            String codeSection = parts[i].substring(0, mIndex);
-            String content = parts[i].substring(mIndex + 1);
+            // 解析 ANSI 代码
+            String codeSection = matcher.group(1);
+            int start = builder.length();
 
-            // 解析颜色代码
+            // 添加 ANSI 代码之后的文本
+            int nextAnsiIndex = text.indexOf("\u001B\\[", matcher.end());
+            if (nextAnsiIndex == -1) {
+                builder.append(text.substring(matcher.end()));
+            } else {
+                builder.append(text.substring(matcher.end(), nextAnsiIndex));
+            }
+
+            // 应用颜色
             for (String code : codeSection.split(";")) {
                 try {
                     int colorCode = Integer.parseInt(code);
                     if (colorCode >= 30 && colorCode <= 37) {
-                        int start = builder.length();
-                        builder.append(content);
                         builder.setSpan(new ForegroundColorSpan(ANSI_COLORS[colorCode - 30]),
                                 start, builder.length(), SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 } catch (NumberFormatException ignored) {}
             }
+
+            lastAppendIndex = (nextAnsiIndex == -1) ? text.length() : nextAnsiIndex;
         }
+
+        // 添加最后一个 ANSI 代码之后的文本
+        if (lastAppendIndex < text.length()) {
+            builder.append(text.substring(lastAppendIndex));
+        }
+
         return builder;
     }
+
     public static Spanned formatRed(CharSequence text) {
         SpannableString spannable = new SpannableString(text);
         spannable.setSpan(new ForegroundColorSpan(Color.RED),

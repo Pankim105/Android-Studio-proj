@@ -133,7 +133,7 @@ public class TerminalFragment extends Fragment {
             }
             else {
                 pythonCommandCache = pythonCommandCache + command+"\n";
-                appendOutput(command+"..."+"\n",false);
+                appendOutput(">>> " + command+"..."+"\n",false);
                 clearInput();
             }
         }
@@ -180,7 +180,6 @@ public class TerminalFragment extends Fragment {
             Spanned formatted = isError ?
                     AnsiColorHelper.formatRed(text) :
                     AnsiColorHelper.convertAnsiToSpanned(text.toString());
-
             tvOutput.append(formatted);
             scrollToBottom();
         });
@@ -221,14 +220,27 @@ public class TerminalFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d("TerminalFragment", "onDestroy()");
         if (shellSession != null) shellSession.terminate();
         if (pythonSession != null) pythonSession.terminate();
     }
 
     @Override
     public void onDestroyView() {
+        Log.d("TerminalFragment", "onDestroyView()");
         inputCache = etInput.getText().toString();
         super.onDestroyView();
+    }
+
+    @Override
+    public void onDetach() {
+        Log.d("TerminalFragment", "onDetach()");
+        if (currentSession != null) {
+            currentSession.terminate();
+            currentSession = null;
+        }
+        mainHandler.removeCallbacksAndMessages(null);
+        super.onDetach();
     }
 
     @Override

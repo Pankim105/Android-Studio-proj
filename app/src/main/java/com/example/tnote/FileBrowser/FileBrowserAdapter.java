@@ -27,7 +27,7 @@ public class FileBrowserAdapter extends RecyclerView.Adapter<FileBrowserAdapter.
 
     public static class TreeNode {
         private final File file;
-        private final int level;
+        private int level;
         private boolean expanded;
         private boolean hasLoadedChildren; // 新增加载状态标记
         private final List<TreeNode> children = new ArrayList<>();
@@ -35,6 +35,9 @@ public class FileBrowserAdapter extends RecyclerView.Adapter<FileBrowserAdapter.
         public TreeNode(File file, int level) {
             this.file = file;
             this.level = level;
+        }
+        public void setLevel(int level){
+            this.level=level;
         }
 
         public File getFile() { return file; }
