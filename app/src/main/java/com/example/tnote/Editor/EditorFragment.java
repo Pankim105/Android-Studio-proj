@@ -1,5 +1,7 @@
 package com.example.tnote.Editor;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
@@ -13,12 +15,16 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
+import com.example.tnote.MainActivity;
 import com.example.tnote.R;
 import com.example.tnote.Utils.EditorUtils.HilightStrategy.SyntaxHighlightManager;
 import com.example.tnote.Utils.EditorUtils.EditorStateManager;
 import com.example.tnote.Utils.FileIOUtils;
 import com.example.tnote.Utils.EditorUtils.KeyBindingHandler;
 import com.example.tnote.Utils.EditorUtils.TextWatcherAdapter;
+import com.example.tnote.Utils.TabManager;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -44,12 +50,13 @@ public class EditorFragment extends Fragment {
 
     // 业务逻辑组件
     private File currentFile;                // 当前正在编辑的文件对象
-    private String filePath = "file_path";
+    private String filePath;
     private String fileName;
     private EditorStateManager stateManager; // 编辑器状态管理器（跟踪修改状态）
     private SyntaxHighlightManager highlightManager; // 语法高亮处理器
     private KeyBindingHandler keyHandler;    // 快捷键处理器
     private AtomicBoolean isTmpFileSaved;
+    private FloatingActionButton saveFile;
     public EditorFragment(File file) {
         currentFile = file;
     }
@@ -74,7 +81,7 @@ public class EditorFragment extends Fragment {
      */
     private void initializeComponents() throws IOException {
         // 从参数中获取文件路径并创建File对象
-        if(filePath.equals("file_path") && currentFile==null) {
+        if(filePath==null && currentFile==null) {
             fileName = UUID.randomUUID().toString();
             currentFile = File.createTempFile(fileName,".py",requireContext().getCacheDir());
             filePath = currentFile.getAbsolutePath();
@@ -84,7 +91,7 @@ public class EditorFragment extends Fragment {
         } else if (currentFile != null) {
             filePath = currentFile.getAbsolutePath();
         }else{
-            currentFile = new File("newFile");
+            currentFile=new File(filePath);
         }
         FileReadLog(currentFile);
         // 初始化各功能管理器
@@ -93,6 +100,7 @@ public class EditorFragment extends Fragment {
         keyHandler = new KeyBindingHandler();    // 预留的快捷键支持
     }
 
+    @SuppressLint("MissingInflatedId")
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -101,6 +109,27 @@ public class EditorFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_code_editor, container, false);
         setupEditor(view);       // 配置编辑器UI属性
         loadFileContent();       // 异步加载文件内容
+        saveFile = view.findViewById(R.id.save_fab);
+        saveFile.setOnClickListener(v -> {
+            saveFile();
+            currentFile=null;
+            filePath=null;
+            Activity activity = getActivity();
+            if(activity!=null){
+                try{
+                    MainActivity mainActivity = (MainActivity) activity;
+                    mainActivity.tabManager.switchTab(TabManager.TabType.TERMINAL);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            try {
+                initializeComponents();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        });
         return view;
     }
     @Override

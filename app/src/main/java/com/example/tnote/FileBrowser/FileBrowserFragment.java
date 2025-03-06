@@ -120,9 +120,17 @@ public class FileBrowserFragment extends Fragment {
         });
         confirmButton.setOnClickListener(v -> {
             try {
-                creatFile();
-            } catch (IOException e) {
+                if(!fileName.getText().toString().equals("")) {
+                    creatFile();
+                }
+                else toggleCardView();
+            } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
+            }
+        });
+        cancelButton.setOnClickListener(v -> {
+            try {
+                toggleCardView();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -135,13 +143,13 @@ public class FileBrowserFragment extends Fragment {
         try{
             if (!file.exists()) {
                 file.createNewFile();
+                FileOutputStream fos = new FileOutputStream(file);
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos));
+                writer.write("from torch import tensor\nprint(\"This is a python file test\")"); // 写入数据
+                writer.flush();
+                writer.close();
+                fos.close();
             }
-            FileOutputStream fos = new FileOutputStream(file);
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos));
-            writer.write("from torch import tensor\nprint(\"This is a python file test\")"); // 写入数据
-            writer.flush();
-            writer.close();
-            fos.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -157,7 +165,7 @@ public class FileBrowserFragment extends Fragment {
     public void toggleCardView() throws InterruptedException {
         if(cardView.getVisibility()==View.GONE) {
             cardView.setVisibility(View.VISIBLE);
-            setGuidline(0.23f);
+            setGuidline(0.1f);
         }
         else{
             setGuidline(0.5f);

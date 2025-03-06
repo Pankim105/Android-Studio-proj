@@ -13,6 +13,7 @@ import com.example.tnote.MainActivity;
 import com.example.tnote.Terminal.TerminalFragment;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -43,6 +44,7 @@ public class TabManager {
     /** 状态标志 */
     private boolean isFileBroswerON;     // 文件浏览器显示状态标识
     private int numberOfEditors = 0;     // 已打开的编辑器计数器（最大 5 个）
+    private ArrayList<String> editorsAdded; //已打开的编辑器在Manager中的tag
 
     /**
      * 构造函数
@@ -171,6 +173,7 @@ public class TabManager {
                 fragmentMap.put(tabType, editorFragment);
 
                 // 使用唯一标签添加到容器
+                editorsAdded.add(tabType.name() + numberOfEditors);
                 transaction.add(leftContainerId, editorFragment,
                         tabType.name() + numberOfEditors);
                 transaction.commit();
