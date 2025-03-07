@@ -1,7 +1,6 @@
 package com.example.tnote.Utils;
 
 import android.annotation.SuppressLint;
-import android.util.Log;
 import android.widget.ImageButton;
 
 import androidx.fragment.app.Fragment;
@@ -19,18 +18,26 @@ import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 /**
  * 选项卡管理类，负责管理终端、文件浏览器和编辑器三个面板的切换逻辑
  * 使用 ReentrantLock 和 Condition 实现线程安全的 Fragment 操作
  */
 public class TabManager {
-    /** 选项卡类型枚举 */
-    public enum TabType { TERMINAL, FILE_BROWSER, EDITOR }
 
-    /** Fragment 缓存映射表：存储已创建的 Fragment 实例 */
+    /**
+     * 选项卡类型枚举
+     */
+    public enum TabType {
+        TERMINAL,       // 终端选项卡
+        FILE_BROWSER,   // 文件浏览器选项卡
+        EDITOR          // 编辑器选项卡
+    }
+
+    /**
+     * Fragment 缓存映射表：存储已创建的 Fragment 实例，key 为选项卡类型
+     */
     public final Map<TabType, Fragment> fragmentMap = new EnumMap<>(TabType.class);
 
     // UI 组件
@@ -39,18 +46,22 @@ public class TabManager {
 
     // Fragment 管理相关
     public final FragmentManager fragmentManager; // Fragment 管理器
-    private final int leftContainerId;          // 左侧容器资源 ID
-    private final int rightContainerId;         // 右侧容器资源 ID
+    private final int leftContainerId;          // 左侧容器资源 ID (用于显示终端和编辑器)
+    private final int rightContainerId;         // 右侧容器资源 ID (用于显示文件浏览器)
 
-    /** 当前显示的 Fragment 实例 */
+    /**
+     * 当前显示的 Fragment 实例
+     */
     public Fragment leftPaneFragment;   // 左侧面板当前显示的 Fragment
     public Fragment rightPaneFragment;  // 右侧面板当前显示的 Fragment
 
-    /** 状态标志 */
-    private boolean isFileBroswerON;     // 文件浏览器显示状态标识
-    public Semaphore numberOfEditors = new Semaphore(1);     // 已打开的编辑器计数器（最大 5 个）
-    private ArrayList<String> editorsAdded = new ArrayList<>(); //已打开的编辑器在Manager中的tag
-    private static final String TAG = "LockUtils";//测试debug用
+    /**
+     * 状态标志
+     */
+    private boolean isFileBrowserVisible;     // 文件浏览器显示状态标识
+    public Semaphore numberOfEditors = new Semaphore(1);     // 已打开的编辑器计数器（最大 5 个）, 使用信号量控制编辑器Fragment的创建数量
+    private final ArrayList<String> editorTags = new ArrayList<>(); // 已打开的编辑器在 Manager 中的 tag 列表，用于跟踪和管理编辑器Fragment
+    private static final String TAG = "LockUtils";// 测试debug用
 
     /**
      * 构造函数
@@ -59,26 +70,30 @@ public class TabManager {
      * @param fragmentManager Fragment 管理器实例
      * @param leftContainerId 左侧容器资源 ID（用于显示终端和编辑器）
      * @param rightContainerId 右侧容器资源 ID（用于显示文件浏览器）
+     * @throws InterruptedException 当线程被中断时抛出
      */
     public TabManager(ImageButton btnTerminal,
                       ImageButton btnFileBrowser,
                       FragmentManager fragmentManager,
                       int leftContainerId,
                       int rightContainerId) throws InterruptedException {
+
         // 初始化组件引用
         this.btnTerminal = btnTerminal;
         this.btnFileBrowser = btnFileBrowser;
         this.fragmentManager = fragmentManager;
         this.leftContainerId = leftContainerId;
         this.rightContainerId = rightContainerId;
-        this.isFileBroswerON = false;
+        this.isFileBrowserVisible = false;
 
         // 设置按钮监听并初始化默认视图
         setupButtonListeners();
         switchTab(TabType.TERMINAL); // 默认显示终端面板
     }
 
-    /** 初始化按钮点击事件监听器 */
+    /**
+     * 初始化按钮点击事件监听器
+     */
     private void setupButtonListeners() {
         // 终端按钮点击事件：切换到终端面板
         btnTerminal.setOnClickListener(v -> {
@@ -94,7 +109,7 @@ public class TabManager {
         btnFileBrowser.setOnClickListener(v -> {
             try {
                 switchTab(TabType.FILE_BROWSER);
-                this.isFileBroswerON = !this.isFileBroswerON; // 反转显示状态
+                this.isFileBrowserVisible = !this.isFileBrowserVisible; // 反转显示状态
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("文件浏览器切换操作被中断", e);
@@ -109,97 +124,169 @@ public class TabManager {
      */
     @SuppressLint("CommitTransaction")
     public void switchTab(TabType tabType) throws InterruptedException {
-        FragmentTransaction transaction = fragmentManager.beginTransaction();
-
-        // 处理终端面板切换（左侧容器）
         if (tabType == TabType.TERMINAL) {
-            Fragment terminalFragment = fragmentMap.get(tabType);
+            handleTerminalTab();
+        } else if (tabType == TabType.FILE_BROWSER) {
+            handleFileBrowserTab();
+        } else if (tabType == TabType.EDITOR) {
+            handleEditorTab();
+        }
+    }
 
-            // 延迟初始化：首次使用时创建 Fragment
-            if (terminalFragment == null) {
-                terminalFragment = createFragmentForTab(tabType);
-
-                // 初始化左侧面板引用
-                if (leftPaneFragment == null) {
-                    leftPaneFragment = terminalFragment;
-                }
-                fragmentMap.put(tabType, leftPaneFragment);
-
-                // 将 Fragment 添加到左侧容器
-                transaction.add(leftContainerId, leftPaneFragment, tabType.name());
-                transaction.commit();
-            }
-
-            // 隐藏当前左侧面板内容（如果可见）
+    /**
+     * 处理切换到终端选项卡
+     */
+    private void handleTerminalTab() {
+        // 初始化或获取终端Fragment
+        leftPaneFragment = initializeFragment(TabType.TERMINAL, leftContainerId, leftPaneFragment);
+        // 切换显示
+        switchPane(leftPaneFragment, leftContainerId, () -> {
+            // 如果左侧面板当前显示的Fragment是终端Fragment且可见，则隐藏它
             if (leftPaneFragment != null && leftPaneFragment.isVisible()) {
-                hideFromLeftPane(leftPaneFragment);
+                hideFragment(leftPaneFragment);
             }
+        });
+    }
 
-            // 显示终端面板并更新状态
-            showInLeftPane(terminalFragment);
-            leftPaneFragment = terminalFragment;
-        }
+    /**
+     * 处理切换到文件浏览器选项卡
+     */
+    private void handleFileBrowserTab() {
+        // 初始化或获取文件浏览器Fragment
+        rightPaneFragment = initializeFragment(TabType.FILE_BROWSER, rightContainerId, rightPaneFragment);
+        // 切换显示/隐藏
+        toggleFragmentVisibility(rightPaneFragment, () -> isFileBrowserVisible = !isFileBrowserVisible);
+    }
 
-        // 处理文件浏览器面板（右侧容器）
-        if (tabType == TabType.FILE_BROWSER) {
-            Fragment fileBrowserFragment = fragmentMap.get(tabType);
+    /**
+     * 处理切换到编辑器选项卡
+     * @throws InterruptedException 当线程被中断时抛出
+     */
+    private void handleEditorTab() throws InterruptedException {
+        numberOfEditors.acquire(); // 获取编辑器信号量，限制编辑器数量
 
-            // 延迟初始化
-            if (fileBrowserFragment == null) {
-                fileBrowserFragment = createFragmentForTab(tabType);
+        try {
+            Fragment editorFragment = createFragmentForTab(TabType.EDITOR);
+            fragmentMap.put(TabType.EDITOR, editorFragment);
+            // 添加Fragment和标签
+            addFragmentWithTag(editorFragment, leftContainerId, TabType.EDITOR.name());
+            addEditorsTagsViewer(); // 添加编辑器标签视图 (待实现)
 
-                // 初始化右侧面板引用
-                if (rightPaneFragment == null) {
-                    rightPaneFragment = fileBrowserFragment;
+            // 切换显示编辑器并隐藏终端
+            switchPane(editorFragment, leftContainerId, () -> {
+                Fragment terminalFragment = fragmentMap.get(TabType.TERMINAL);
+                // 如果终端Fragment存在且可见，则隐藏终端Fragment
+                if (terminalFragment != null && terminalFragment.isVisible()) {
+                    hideFragment(terminalFragment);
                 }
-                fragmentMap.put(tabType, rightPaneFragment);
+            });
+        } catch (Exception e) {
+            numberOfEditors.release(); // 发生异常时释放信号量
+            throw new RuntimeException(e);
+        }
+    }
 
-                // 添加到右侧容器
-                transaction.add(rightContainerId, rightPaneFragment, tabType.name());
-                transaction.commit();
+    /**
+     * 通用初始化Fragment方法
+     * 用于创建或获取指定类型的Fragment实例，并添加到Fragment缓存和容器中
+     * @param tabType 要初始化的选项卡类型
+     * @param containerId Fragment要添加到的容器ID
+     * @param currentPane 当前面板上显示的Fragment，用于判断是否需要创建新的Fragment
+     * @return 初始化后的Fragment实例
+     */
+    private Fragment initializeFragment(TabType tabType, int containerId, Fragment currentPane) {
+        Fragment fragment = fragmentMap.get(tabType); // 尝试从缓存中获取Fragment
+
+        if (fragment == null) {
+            // 如果缓存中不存在，则创建新的Fragment实例
+            fragment = createFragmentForTab(tabType);
+
+            if (currentPane == null) {
+                currentPane = fragment; // 如果当前面板为空，则将新创建的Fragment设置为当前面板
             }
 
-            // 根据当前状态切换显示/隐藏（使用线程安全方法）
-            if (this.isFileBroswerON) {
-                hideFromRightPane(fileBrowserFragment);
-                this.isFileBroswerON = false;
+            fragmentMap.put(tabType, currentPane); // 将Fragment添加到缓存中
+            addFragmentToContainer(currentPane, containerId, tabType.name()); // 将Fragment添加到容器中
+        }
+
+        return fragment; // 返回Fragment实例
+    }
+
+    /**
+     * 通用Fragment添加方法
+     * @param fragment 要添加的Fragment实例
+     * @param containerId Fragment要添加到的容器ID
+     * @param tag Fragment的标签，用于Fragment管理
+     */
+    private void addFragmentToContainer(Fragment fragment, int containerId, String tag) {
+        executeTransaction(transaction -> transaction.add(containerId, fragment, tag));
+    }
+
+    /**
+     * 带标签的Fragment添加方法
+     * 用于添加编辑器Fragment并记录其标签
+     * @param fragment 要添加的Fragment实例
+     * @param containerId Fragment要添加到的容器ID
+     * @param tag Fragment的标签
+     */
+    private void addFragmentWithTag(Fragment fragment, int containerId, String tag) {
+        editorTags.add(tag); // 将编辑器Fragment的标签添加到列表中
+        addFragmentToContainer(fragment, containerId, tag); // 调用通用方法将Fragment添加到容器
+    }
+
+    /**
+     * 通用面板切换方法
+     * 用于执行面板切换的通用逻辑，包括执行切换前的操作、显示新的Fragment、更新当前面板Fragment的引用
+     * @param newFragment 要显示的新Fragment实例
+     * @param containerId Fragment要显示的容器ID
+     * @param preAction  切换面板前需要执行的操作，Runnable 接口的实现
+     */
+    private void switchPane(Fragment newFragment, int containerId, Runnable preAction) {
+        executeTransaction(transaction -> {
+            preAction.run(); // 执行切换面板前的操作
+            transaction.show(newFragment); // 显示新的Fragment
+
+            // 更新当前面板Fragment的引用
+            if (containerId == leftContainerId) leftPaneFragment = newFragment;
+            if (containerId == rightContainerId) rightPaneFragment = newFragment;
+        });
+    }
+
+    /**
+     * 通用可见性切换方法
+     * 用于切换Fragment的可见性（显示/隐藏）
+     * @param fragment 要切换可见性的Fragment实例
+     * @param postAction 切换可见性后需要执行的操作，Runnable 接口的实现
+     */
+    private void toggleFragmentVisibility(Fragment fragment, Runnable postAction) {
+        executeTransaction(transaction -> {
+            // 如果Fragment当前可见，则隐藏；否则显示
+            if (fragment.isVisible()) {
+                transaction.hide(fragment);
             } else {
-                showInRightPane(fileBrowserFragment);
-                this.isFileBroswerON = true;
+                transaction.show(fragment);
             }
-        }
+            postAction.run(); // 执行切换可见性后的操作
+        });
+    }
 
-        // 处理编辑器面板（左侧容器）
-        if (tabType == TabType.EDITOR) {
-            Fragment editorFragment = fragmentMap.get(tabType);
+    /**
+     * 通用Fragment隐藏方法
+     * @param fragment 要隐藏的Fragment实例
+     */
+    private void hideFragment(Fragment fragment) {
+        executeTransaction(transaction -> transaction.hide(fragment));
+    }
 
-            // 限制最大打开数量为 5 个
-            numberOfEditors.acquire();
-            try{
-                editorFragment = createFragmentForTab(tabType);
-                fragmentMap.put(tabType, editorFragment);
-
-                // 使用唯一标签添加到容器
-                editorsAdded.add(tabType.name() /*+ numberOfEditors*/);
-                transaction.add(leftContainerId, editorFragment,
-                        tabType.name() /*+numberOfEditors.availablePermits()*/);
-                transaction.commit();
-
-                // 多个编辑器时显示标签栏（TODO：待实现）
-               addEditorsTagsViewer();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            // 隐藏当前终端面板（如果可见）
-            if (fragmentMap.get(TabType.TERMINAL) != null &&
-                    fragmentMap.get(TabType.TERMINAL).isVisible()) {
-                hideFromLeftPane(fragmentMap.get(TabType.TERMINAL));
-            }
-
-            // 显示编辑器面板
-            showInLeftPane(editorFragment);
-        }
+    /**
+     * 通用事务执行方法
+     * 封装Fragment事务的执行过程，确保事务的统一处理
+     * @param action Consumer 接口，用于执行Fragment事务的具体操作
+     */
+    private void executeTransaction(Consumer<FragmentTransaction> action) {
+        FragmentTransaction transaction = fragmentManager.beginTransaction(); // 开启Fragment事务
+        action.accept(transaction); // 执行具体的事务操作
+        transaction.commit(); // 提交事务
     }
 
     /**
@@ -215,12 +302,13 @@ public class TabManager {
      * 打开指定文件的编辑器（重载方法）
      * @param tabType 必须为 EDITOR 类型
      * @param file 要编辑的文件对象
+     * @throws InterruptedException 当线程被中断时抛出
      */
     public void switchTab(TabType tabType, File file) throws InterruptedException {
         FragmentTransaction transaction = fragmentManager.beginTransaction();
+
         if (tabType == TabType.EDITOR) {
             Fragment editorFragment = fragmentMap.get(tabType);
-
             // 创建带文件参数的编辑器实例
             if (editorFragment == null) {
                 editorFragment = createFragmentForTab(tabType, file);
@@ -251,11 +339,11 @@ public class TabManager {
     private Fragment createFragmentForTab(TabType tabType) {
         switch (tabType) {
             case TERMINAL:
-                return new TerminalFragment();    // 终端实例
+                return new TerminalFragment();    // 创建终端实例
             case FILE_BROWSER:
-                return new FileBrowserFragment(); // 文件浏览器实例
+                return new FileBrowserFragment(); // 创建文件浏览器实例
             case EDITOR:
-                return new EditorFragment();      // 空白编辑器实例
+                return new EditorFragment();      // 创建空白编辑器实例
             default:
                 throw new IllegalArgumentException("不支持的选项卡类型: " + tabType);
         }
@@ -265,6 +353,8 @@ public class TabManager {
      * 创建带文件参数的编辑器实例（工厂方法）
      * @param tabType 必须为 EDITOR 类型
      * @param file 需要编辑的目标文件
+     * @return 带文件参数的编辑器 Fragment 实例
+     * @throws IllegalArgumentException 当传入的选项卡类型不是 EDITOR 时抛出
      */
     private Fragment createFragmentForTab(TabType tabType, File file) {
         if (tabType == TabType.EDITOR) {
@@ -274,7 +364,9 @@ public class TabManager {
         }
     }
 
-    /** 清理资源，解除按钮监听 */
+    /**
+     * 清理资源，解除按钮监听
+     */
     public void cleanup() {
         btnTerminal.setOnClickListener(null);
         btnFileBrowser.setOnClickListener(null);
@@ -292,9 +384,8 @@ public class TabManager {
         try {
             // 等待当前 Fragment 隐藏
             while (leftPaneFragment != null && leftPaneFragment.isVisible()) {
-                MainActivity.leftPaneCondition.await();
+                MainActivity.leftPaneCondition.await(); // 等待左侧面板条件
             }
-
             // 执行显示操作
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             transaction.show(fragment);
@@ -326,7 +417,7 @@ public class TabManager {
 
             // 唤醒等待线程
             if (leftPaneFragment != null && !leftPaneFragment.isVisible()) {
-                MainActivity.leftPaneCondition.signalAll();
+                MainActivity.leftPaneCondition.signalAll(); // 通知所有等待左侧面板条件的线程
             }
         } finally {
             MainActivity.leftPaneLock.unlock(); // 释放锁
@@ -343,9 +434,8 @@ public class TabManager {
         try {
             // 等待当前 Fragment 隐藏
             while (rightPaneFragment != null && rightPaneFragment.isVisible()) {
-                MainActivity.rightPaneCondition.await();
+                MainActivity.rightPaneCondition.await(); // 等待右侧面板条件
             }
-
             // 执行显示操作
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             transaction.show(fragment);
@@ -367,18 +457,19 @@ public class TabManager {
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             transaction.hide(fragment);
             transaction.commit();
+
             if (rightPaneFragment == fragment) {
                 rightPaneFragment = null; // 清空状态
             }
-
             // 唤醒等待线程
             if (rightPaneFragment != null && !rightPaneFragment.isVisible()) {
-                MainActivity.rightPaneCondition.signalAll();
+                MainActivity.rightPaneCondition.signalAll(); // 通知所有等待右侧面板条件的线程
             }
         } finally {
             MainActivity.rightPaneLock.unlock(); // 释放锁
         }
     }
+
     /**
      * 线程安全地移除指定的 Fragment
      * @param fragment 要移除的 Fragment
@@ -387,11 +478,9 @@ public class TabManager {
         if (fragment == null) return;
 
         MainActivity.leftPaneLock.lock(); // 获取左侧面板锁
-        MainActivity.rightPaneLock.lock(); //获取右侧面板锁
-
+        MainActivity.rightPaneLock.lock(); // 获取右侧面板锁
         try {
             FragmentTransaction transaction = fragmentManager.beginTransaction();
-
             // 移除 Fragment
             transaction.remove(fragment);
             transaction.commit();
@@ -400,7 +489,7 @@ public class TabManager {
             if (leftPaneFragment == fragment) {
                 leftPaneFragment = null;
             }
-            if (rightPaneFragment == fragment){
+            if (rightPaneFragment == fragment) {
                 rightPaneFragment = null;
             }
 
@@ -417,49 +506,49 @@ public class TabManager {
             // 如果是编辑器 Fragment，更新信号量和标签列表
             if (fragment instanceof EditorFragment) {
                 numberOfEditors.release(); // 释放信号量
-                if (editorsAdded != null) {
+                if (editorTags != null) {
                     String tagToRemove = null;
-                    for (String tag : editorsAdded) {
+                    // 查找要移除的 tag，通过 FragmentManager 查找不到的 tag 即为要移除的 tag
+                    for (String tag : editorTags) {
                         if (fragmentManager.findFragmentByTag(tag) == null) {
                             tagToRemove = tag;
                             break;
                         }
                     }
                     if (tagToRemove != null) {
-                        editorsAdded.remove(tagToRemove); // 从列表中移除
+                        editorTags.remove(tagToRemove); // 从列表中移除 tag
                     }
                 }
             }
 
             // 唤醒等待线程
-            printLockInfo(MainActivity.leftPaneLock, "leftPaneLock");
-            printLockInfo(MainActivity.rightPaneLock, "rightPaneLock");
-            MainActivity.leftPaneCondition.signalAll();
-            MainActivity.rightPaneCondition.signalAll();
-
+            MainActivity.leftPaneCondition.signalAll(); // 通知所有等待左侧面板条件的线程
+            MainActivity.rightPaneCondition.signalAll(); // 通知所有等待右侧面板条件的线程
         } finally {
             MainActivity.leftPaneLock.unlock(); // 释放左侧面板锁
-            MainActivity.rightPaneLock.unlock(); //释放右侧面板锁
+            MainActivity.rightPaneLock.unlock(); // 释放右侧面板锁
         }
     }
 
+    // 调试用，已注释
 
-    public static void printLockInfo(Lock lock, String lockName) {
-        ReentrantLock reentrantLock = (ReentrantLock) lock;
-        if (reentrantLock.getHoldCount() > 0) {
-            Thread currentThread = Thread.currentThread();
-            StackTraceElement[] stackTrace = currentThread.getStackTrace();
-            StringBuilder stackTraceString = new StringBuilder();
+    //    public static void printLockInfo(Lock lock, String lockName) {
+    //        ReentrantLock reentrantLock = (ReentrantLock) lock;
+    //        if (reentrantLock.getHoldCount() > 0) {
+    //            Thread currentThread = Thread.currentThread();
+    //            StackTraceElement[] stackTrace = currentThread.getStackTrace();
+    //            StringBuilder stackTraceString = new StringBuilder();
+    //
+    //            for (StackTraceElement element : stackTrace) {
+    //                stackTraceString.append(element.toString()).append("\n");
+    //            }
+    //
+    //            Log.d(TAG, "Lock '" + lockName + "' is currently held by thread: " + currentThread.getName() + " (ID: " + currentThread.getId() + ")");
+    //            Log.d(TAG, "Stack trace:\n" + stackTraceString.toString());
+    //        } else {
+    //            Log.d(TAG, "Lock '" + lockName + "' is currently NOT held.");
+    //        }
+    //    }
 
-            for (StackTraceElement element : stackTrace) {
-                stackTraceString.append(element.toString()).append("\n");
-            }
-
-            Log.d(TAG, "Lock '" + lockName + "' is currently held by thread: " + currentThread.getName() + " (ID: " + currentThread.getId() + ")");
-            Log.d(TAG, "Stack trace:\n" + stackTraceString.toString());
-        } else {
-            Log.d(TAG, "Lock '" + lockName + "' is currently NOT held.");
-        }
-    }
     // endregion
 }

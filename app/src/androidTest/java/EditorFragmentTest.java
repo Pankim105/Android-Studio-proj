@@ -40,13 +40,6 @@ public class EditorFragmentTest {
     public void testFragmentLoads() {
         // 创建 EditorFragment 的实例并添加到 Activity
         activityRule.getScenario().onActivity(activity -> {
-//            File file =null;
-//           try {
-//               InputStream fileContent = activity.getAssets().open("test.md");
-//               file = createTempFileFromInputStream(fileContent,"tempFile");
-//           } catch (IOException e) {
-//               throw new RuntimeException(e);
-//           }
 
             Fragment fragment = new EditorFragment();
             activity.getSupportFragmentManager().beginTransaction()
