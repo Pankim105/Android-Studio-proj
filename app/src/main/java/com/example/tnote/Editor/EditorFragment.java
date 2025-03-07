@@ -33,6 +33,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -57,6 +61,8 @@ public class EditorFragment extends Fragment {
     private KeyBindingHandler keyHandler;    // 快捷键处理器
     private AtomicBoolean isTmpFileSaved;
     private FloatingActionButton saveFile;
+    private BlockingQueue<Runnable> saveQueue = new LinkedBlockingQueue<>();
+    private ExecutorService saveExecutor = Executors.newSingleThreadExecutor();
     public EditorFragment(File file) {
         currentFile = file;
     }
@@ -81,14 +87,7 @@ public class EditorFragment extends Fragment {
      */
     private void initializeComponents() throws IOException {
         // 从参数中获取文件路径并创建File对象
-        if(filePath==null && currentFile==null) {
-            fileName = UUID.randomUUID().toString();
-            currentFile = File.createTempFile(fileName,".py",requireContext().getCacheDir());
-            filePath = currentFile.getAbsolutePath();
-            writeToFile(currentFile,"#This app created a '.py' temprary file for you. \n#Please save it as what you want.\n print(\"hello,world\")");
-            Log.println(Log.INFO,"TEMP FILE CREATING",filePath);
-
-        } else if (currentFile != null) {
+        if (currentFile != null) {
             filePath = currentFile.getAbsolutePath();
         }else{
             currentFile=new File(filePath);
@@ -112,23 +111,6 @@ public class EditorFragment extends Fragment {
         saveFile = view.findViewById(R.id.save_fab);
         saveFile.setOnClickListener(v -> {
             saveFile();
-            currentFile=null;
-            filePath=null;
-            Activity activity = getActivity();
-            if(activity!=null){
-                try{
-                    MainActivity mainActivity = (MainActivity) activity;
-                    mainActivity.tabManager.switchTab(TabManager.TabType.TERMINAL);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            try {
-                initializeComponents();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
         });
         return view;
     }
@@ -201,12 +183,17 @@ public class EditorFragment extends Fragment {
      * 执行文件保存操作
      * @return boolean 总是返回true表示已处理保存流程，实际结果通过回调处理
      * @流程说明：
-     * 1. 使用FileIOUtils异步写入文件
+     * 1. 使用FileIOUtils异步写入文件 !!!注意!!!!用了阻塞队列
      * 2. 根据操作结果更新状态和显示提示
      */
     public boolean saveFile() {
-        return FileIOUtils.writeFile(currentFile, editor.getText().toString(),
-                success -> handleSaveResult(success));
+        saveQueue.offer(() -> {
+            boolean result = FileIOUtils.writeFile(currentFile, editor.getText().toString(),
+                    success -> handleSaveResult(success));
+            // 在此处或其他合适的位置处理 result
+        });
+        saveExecutor.execute(saveQueue.poll()); // 执行队列中的下一个任务
+        return true; // 返回 true，表示任务已加入队列
     }
 
     /**
@@ -218,6 +205,29 @@ public class EditorFragment extends Fragment {
         if (success) {
             stateManager.clearModified();  // 清除修改标记
             showToast(R.string.save_success); // 显示保存成功提示
+            Activity activity = getActivity();
+            if(activity!=null){
+                try{
+                    MainActivity mainActivity = (MainActivity) activity;
+                    //mainActivity.tabManager.switchTab(TabManager.TabType.TERMINAL);
+                    Log.println(Log.INFO,"1059696502","replace start");
+                    Fragment fragment = mainActivity.tabManager.fragmentManager.findFragmentByTag(TabManager.TabType.TERMINAL.name());
+                    if(fragment != null) {
+//                        mainActivity.tabManager.fragmentManager.beginTransaction().remove(this).show(fragment).commit();
+//                        mainActivity.tabManager.leftPaneFragment=fragment;
+//                        mainActivity.tabManager.numberOfEditors.release();
+//                        mainActivity.tabManager.fragmentMap.remove(TabManager.TabType.EDITOR);
+                        mainActivity.tabManager.remove(this);
+                        mainActivity.tabManager.fragmentManager.beginTransaction().show(fragment).commit();
+
+                    } else {
+                        Log.e("1059696502","fragment not found");
+                    }
+                    Log.println(Log.INFO,"1059696502","replace end");
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
         } else {
             showToast(R.string.save_failed);  // 显示保存失败提示
         }

@@ -44,9 +44,9 @@ public class MainActivity extends AppCompatActivity {
 
     //左右窗口Fragment同步
     public static Lock leftPaneLock = new ReentrantLock();
-    public static Condition leftPaneCondition = guidelineLock.newCondition();
+    public static Condition leftPaneCondition = leftPaneLock.newCondition();
     public static Lock rightPaneLock = new ReentrantLock();
-    public static Condition rightPaneCondition = guidelineLock.newCondition();
+    public static Condition rightPaneCondition = rightPaneLock.newCondition();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

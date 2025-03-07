@@ -1,6 +1,6 @@
 <resources>
     <!-- 应用元数据 -->
-    <string name="app_name">My Terminal</string>
+    <string name="app_name">MyTerminal</string>
     <string name="app_version">v1.0.0-beta</string>
 
     <!-- 终端界面 -->

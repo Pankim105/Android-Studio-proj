@@ -1,6 +1,7 @@
 package com.example.tnote.Utils;
 
 import android.annotation.SuppressLint;
+import android.util.Log;
 import android.widget.ImageButton;
 
 import androidx.fragment.app.Fragment;
@@ -15,7 +16,11 @@ import com.example.tnote.Terminal.TerminalFragment;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 选项卡管理类，负责管理终端、文件浏览器和编辑器三个面板的切换逻辑
@@ -33,18 +38,19 @@ public class TabManager {
     private final ImageButton btnFileBrowser;   // 文件浏览器切换按钮
 
     // Fragment 管理相关
-    private final FragmentManager fragmentManager; // Fragment 管理器
+    public final FragmentManager fragmentManager; // Fragment 管理器
     private final int leftContainerId;          // 左侧容器资源 ID
     private final int rightContainerId;         // 右侧容器资源 ID
 
     /** 当前显示的 Fragment 实例 */
-    private Fragment leftPaneFragment;   // 左侧面板当前显示的 Fragment
-    private Fragment rightPaneFragment;  // 右侧面板当前显示的 Fragment
+    public Fragment leftPaneFragment;   // 左侧面板当前显示的 Fragment
+    public Fragment rightPaneFragment;  // 右侧面板当前显示的 Fragment
 
     /** 状态标志 */
     private boolean isFileBroswerON;     // 文件浏览器显示状态标识
-    private int numberOfEditors = 0;     // 已打开的编辑器计数器（最大 5 个）
-    private ArrayList<String> editorsAdded; //已打开的编辑器在Manager中的tag
+    public Semaphore numberOfEditors = new Semaphore(1);     // 已打开的编辑器计数器（最大 5 个）
+    private ArrayList<String> editorsAdded = new ArrayList<>(); //已打开的编辑器在Manager中的tag
+    private static final String TAG = "LockUtils";//测试debug用
 
     /**
      * 构造函数
@@ -168,19 +174,21 @@ public class TabManager {
             Fragment editorFragment = fragmentMap.get(tabType);
 
             // 限制最大打开数量为 5 个
-            if (numberOfEditors <= 5) {
+            numberOfEditors.acquire();
+            try{
                 editorFragment = createFragmentForTab(tabType);
                 fragmentMap.put(tabType, editorFragment);
 
                 // 使用唯一标签添加到容器
-                editorsAdded.add(tabType.name() + numberOfEditors);
+                editorsAdded.add(tabType.name() /*+ numberOfEditors*/);
                 transaction.add(leftContainerId, editorFragment,
-                        tabType.name() + numberOfEditors);
+                        tabType.name() /*+numberOfEditors.availablePermits()*/);
                 transaction.commit();
-                numberOfEditors += 1;
 
                 // 多个编辑器时显示标签栏（TODO：待实现）
-                if (numberOfEditors > 1) addEditorsTagsViewer();
+               addEditorsTagsViewer();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
 
             // 隐藏当前终端面板（如果可见）
@@ -369,6 +377,88 @@ public class TabManager {
             }
         } finally {
             MainActivity.rightPaneLock.unlock(); // 释放锁
+        }
+    }
+    /**
+     * 线程安全地移除指定的 Fragment
+     * @param fragment 要移除的 Fragment
+     */
+    public void remove(Fragment fragment) {
+        if (fragment == null) return;
+
+        MainActivity.leftPaneLock.lock(); // 获取左侧面板锁
+        MainActivity.rightPaneLock.lock(); //获取右侧面板锁
+
+        try {
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+
+            // 移除 Fragment
+            transaction.remove(fragment);
+            transaction.commit();
+
+            // 更新 Fragment 引用和 fragmentMap
+            if (leftPaneFragment == fragment) {
+                leftPaneFragment = null;
+            }
+            if (rightPaneFragment == fragment){
+                rightPaneFragment = null;
+            }
+
+            // 从 fragmentMap 中移除
+            Iterator<Map.Entry<TabType, Fragment>> iterator = fragmentMap.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<TabType, Fragment> entry = iterator.next();
+                if (entry.getValue() == fragment) {
+                    iterator.remove();
+                    break;
+                }
+            }
+
+            // 如果是编辑器 Fragment，更新信号量和标签列表
+            if (fragment instanceof EditorFragment) {
+                numberOfEditors.release(); // 释放信号量
+                if (editorsAdded != null) {
+                    String tagToRemove = null;
+                    for (String tag : editorsAdded) {
+                        if (fragmentManager.findFragmentByTag(tag) == null) {
+                            tagToRemove = tag;
+                            break;
+                        }
+                    }
+                    if (tagToRemove != null) {
+                        editorsAdded.remove(tagToRemove); // 从列表中移除
+                    }
+                }
+            }
+
+            // 唤醒等待线程
+            printLockInfo(MainActivity.leftPaneLock, "leftPaneLock");
+            printLockInfo(MainActivity.rightPaneLock, "rightPaneLock");
+            MainActivity.leftPaneCondition.signalAll();
+            MainActivity.rightPaneCondition.signalAll();
+
+        } finally {
+            MainActivity.leftPaneLock.unlock(); // 释放左侧面板锁
+            MainActivity.rightPaneLock.unlock(); //释放右侧面板锁
+        }
+    }
+
+
+    public static void printLockInfo(Lock lock, String lockName) {
+        ReentrantLock reentrantLock = (ReentrantLock) lock;
+        if (reentrantLock.getHoldCount() > 0) {
+            Thread currentThread = Thread.currentThread();
+            StackTraceElement[] stackTrace = currentThread.getStackTrace();
+            StringBuilder stackTraceString = new StringBuilder();
+
+            for (StackTraceElement element : stackTrace) {
+                stackTraceString.append(element.toString()).append("\n");
+            }
+
+            Log.d(TAG, "Lock '" + lockName + "' is currently held by thread: " + currentThread.getName() + " (ID: " + currentThread.getId() + ")");
+            Log.d(TAG, "Stack trace:\n" + stackTraceString.toString());
+        } else {
+            Log.d(TAG, "Lock '" + lockName + "' is currently NOT held.");
         }
     }
     // endregion

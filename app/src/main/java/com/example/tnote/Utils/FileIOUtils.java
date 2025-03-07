@@ -2,10 +2,14 @@ package com.example.tnote.Utils;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * 文件操作工具类，提供：
@@ -14,6 +18,9 @@ import java.util.concurrent.Executors;
  * - 线程安全管理
  */
 public class FileIOUtils {
+    private static final String TAG = "FileIOUtils";
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private static Future<?> currentWriteTask = null;
     public interface FileReadCallback {
         void onComplete(String content);
     }
@@ -46,14 +53,23 @@ public class FileIOUtils {
      * @return 是否成功启动写入任务
      */
     public static boolean writeFile(File file, String content, FileWriteCallback callback) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+
+        if (currentWriteTask != null && !currentWriteTask.isDone()) {
+            currentWriteTask.cancel(true); // 取消之前的任务
+        }
+        currentWriteTask = executor.submit(() -> {
             boolean success = false;
             try {
                 Files.write(file.toPath(), content.getBytes());
                 success = true;
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                Log.e(TAG, "Error writing file: " + e.getMessage());
+            }
             boolean finalSuccess = success;
-            postToMainThread(() -> callback.onComplete(finalSuccess));
+            postToMainThread(() -> {
+                Log.e(TAG, "Error writing file: " +"writeback!!!!!!" );
+                callback.onComplete(finalSuccess);
+            });
         });
         return true;
     }

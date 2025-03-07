@@ -32,6 +32,5 @@
         <activity android:name=".testActivity"
             android:label="Test Activity"
             android:exported="true" />
-
     </application>
 </manifest>
