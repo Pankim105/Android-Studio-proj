@@ -148,10 +148,10 @@ public class MainActivity extends AppCompatActivity {
                 R.id.right_pane
         );
 
-        // 初次加载默认标签
-        if (savedInstanceState == null) {
-            tabManager.switchTab(TabManager.TabType.TERMINAL);
-        }
+//        // 初次加载默认标签
+//        if (savedInstanceState == null) {
+//            tabManager.switchTab(TabManager.TabType.TERMINAL);
+//        }
     }
 
     /**
@@ -165,7 +165,6 @@ public class MainActivity extends AppCompatActivity {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            EditorFragment editorFragment = (EditorFragment) getSupportFragmentManager().findFragmentById(R.id.editor);
         });
 
         // 文件浏览器按钮

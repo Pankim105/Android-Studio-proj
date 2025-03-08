@@ -213,15 +213,15 @@ public class EditorFragment extends Fragment {
                     Log.println(Log.INFO,"1059696502","replace start");
                     Fragment fragment = mainActivity.tabManager.fragmentManager.findFragmentByTag(TabManager.TabType.TERMINAL.name());
                     if(fragment != null) {
-//                        mainActivity.tabManager.fragmentManager.beginTransaction().remove(this).show(fragment).commit();
-//                        mainActivity.tabManager.leftPaneFragment=fragment;
-//                        mainActivity.tabManager.numberOfEditors.release();
-//                        mainActivity.tabManager.fragmentMap.remove(TabManager.TabType.EDITOR);
                         mainActivity.tabManager.remove(this);
                         mainActivity.tabManager.fragmentManager.beginTransaction().show(fragment).commit();
+                        mainActivity.tabManager.leftPaneFragment = fragment;
+                        Log.println(Log.INFO,"LEFTPANE：","TERMINAL");
 
                     } else {
                         Log.e("1059696502","fragment not found");
+                        mainActivity.tabManager.switchTab(TabManager.TabType.TERMINAL);
+
                     }
                     Log.println(Log.INFO,"1059696502","replace end");
                 } catch (Exception e) {

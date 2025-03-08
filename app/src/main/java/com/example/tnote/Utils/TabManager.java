@@ -1,6 +1,7 @@
 package com.example.tnote.Utils;
 
 import android.annotation.SuppressLint;
+import android.util.Log;
 import android.widget.ImageButton;
 
 import androidx.fragment.app.Fragment;
@@ -85,36 +86,7 @@ public class TabManager {
         this.leftContainerId = leftContainerId;
         this.rightContainerId = rightContainerId;
         this.isFileBrowserVisible = false;
-
-        // 设置按钮监听并初始化默认视图
-        setupButtonListeners();
         switchTab(TabType.TERMINAL); // 默认显示终端面板
-    }
-
-    /**
-     * 初始化按钮点击事件监听器
-     */
-    private void setupButtonListeners() {
-        // 终端按钮点击事件：切换到终端面板
-        btnTerminal.setOnClickListener(v -> {
-            try {
-                switchTab(TabType.TERMINAL);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("终端切换操作被中断", e);
-            }
-        });
-
-        // 文件浏览器按钮点击事件：切换文件浏览器的显示状态
-        btnFileBrowser.setOnClickListener(v -> {
-            try {
-                switchTab(TabType.FILE_BROWSER);
-                this.isFileBrowserVisible = !this.isFileBrowserVisible; // 反转显示状态
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("文件浏览器切换操作被中断", e);
-            }
-        });
     }
 
     /**
@@ -137,15 +109,26 @@ public class TabManager {
      * 处理切换到终端选项卡
      */
     private void handleTerminalTab() {
+        if(leftPaneFragment instanceof EditorFragment) Log.println(Log.INFO,"EDITOR TO TERMINAL","DOES EDITOR HIDE?");
+        // 如果左侧面板当前显示的Fragment不为空Fragment且可见，则隐藏它
+        if (leftPaneFragment == null){
+            Log.println(Log.INFO,"LEFTPANE IS","NULL");
+        }
+        if (leftPaneFragment != null && !leftPaneFragment.isVisible()){
+            Log.println(Log.INFO,"LEFTPANE IS","NOT VISIABLE");
+        }
+        if (leftPaneFragment != null && leftPaneFragment.isVisible()) {
+            Log.println(Log.INFO,"TERMINAL HIDE", "TERMINAL HIDE!");
+            hideFragment(leftPaneFragment);
+        }
         // 初始化或获取终端Fragment
-        leftPaneFragment = initializeFragment(TabType.TERMINAL, leftContainerId, leftPaneFragment);
+        if(leftPaneFragment!=fragmentMap.get(TabType.TERMINAL)|leftPaneFragment==null) {
+            leftPaneFragment = initializeFragment(TabType.TERMINAL, leftContainerId);
+            Log.println(Log.INFO, "LEFTPANE：", "TERMINAL");
+        }
+        Log.println(Log.INFO,"TERMINAL SHOW", "TERMINAL SHOW!");
         // 切换显示
-        switchPane(leftPaneFragment, leftContainerId, () -> {
-            // 如果左侧面板当前显示的Fragment是终端Fragment且可见，则隐藏它
-            if (leftPaneFragment != null && leftPaneFragment.isVisible()) {
-                hideFragment(leftPaneFragment);
-            }
-        });
+        switchPane(leftPaneFragment, leftContainerId);
     }
 
     /**
@@ -153,7 +136,7 @@ public class TabManager {
      */
     private void handleFileBrowserTab() {
         // 初始化或获取文件浏览器Fragment
-        rightPaneFragment = initializeFragment(TabType.FILE_BROWSER, rightContainerId, rightPaneFragment);
+        rightPaneFragment = initializeFragment(TabType.FILE_BROWSER, rightContainerId);
         // 切换显示/隐藏
         toggleFragmentVisibility(rightPaneFragment, () -> isFileBrowserVisible = !isFileBrowserVisible);
     }
@@ -164,7 +147,6 @@ public class TabManager {
      */
     private void handleEditorTab() throws InterruptedException {
         numberOfEditors.acquire(); // 获取编辑器信号量，限制编辑器数量
-
         try {
             Fragment editorFragment = createFragmentForTab(TabType.EDITOR);
             fragmentMap.put(TabType.EDITOR, editorFragment);
@@ -173,13 +155,13 @@ public class TabManager {
             addEditorsTagsViewer(); // 添加编辑器标签视图 (待实现)
 
             // 切换显示编辑器并隐藏终端
-            switchPane(editorFragment, leftContainerId, () -> {
-                Fragment terminalFragment = fragmentMap.get(TabType.TERMINAL);
-                // 如果终端Fragment存在且可见，则隐藏终端Fragment
-                if (terminalFragment != null && terminalFragment.isVisible()) {
-                    hideFragment(terminalFragment);
-                }
-            });
+            if (leftPaneFragment != null && leftPaneFragment.isVisible()) {
+                    hideFragment(leftPaneFragment);
+            };
+            switchPane(editorFragment, leftContainerId);
+            leftPaneFragment = editorFragment;
+            Log.println(Log.INFO,"LEFTPANE：", "EDITOR");
+
         } catch (Exception e) {
             numberOfEditors.release(); // 发生异常时释放信号量
             throw new RuntimeException(e);
@@ -191,24 +173,17 @@ public class TabManager {
      * 用于创建或获取指定类型的Fragment实例，并添加到Fragment缓存和容器中
      * @param tabType 要初始化的选项卡类型
      * @param containerId Fragment要添加到的容器ID
-     * @param currentPane 当前面板上显示的Fragment，用于判断是否需要创建新的Fragment
      * @return 初始化后的Fragment实例
      */
-    private Fragment initializeFragment(TabType tabType, int containerId, Fragment currentPane) {
+    private Fragment initializeFragment(TabType tabType, int containerId) {
         Fragment fragment = fragmentMap.get(tabType); // 尝试从缓存中获取Fragment
 
         if (fragment == null) {
             // 如果缓存中不存在，则创建新的Fragment实例
             fragment = createFragmentForTab(tabType);
-
-            if (currentPane == null) {
-                currentPane = fragment; // 如果当前面板为空，则将新创建的Fragment设置为当前面板
-            }
-
-            fragmentMap.put(tabType, currentPane); // 将Fragment添加到缓存中
-            addFragmentToContainer(currentPane, containerId, tabType.name()); // 将Fragment添加到容器中
+            fragmentMap.put(tabType, fragment); // 将Fragment添加到缓存中
+            addFragmentToContainer(fragment, containerId, tabType.name()); // 将Fragment添加到容器中
         }
-
         return fragment; // 返回Fragment实例
     }
 
@@ -239,13 +214,10 @@ public class TabManager {
      * 用于执行面板切换的通用逻辑，包括执行切换前的操作、显示新的Fragment、更新当前面板Fragment的引用
      * @param newFragment 要显示的新Fragment实例
      * @param containerId Fragment要显示的容器ID
-     * @param preAction  切换面板前需要执行的操作，Runnable 接口的实现
      */
-    private void switchPane(Fragment newFragment, int containerId, Runnable preAction) {
+    private void switchPane(Fragment newFragment, int containerId) {
         executeTransaction(transaction -> {
-            preAction.run(); // 执行切换面板前的操作
             transaction.show(newFragment); // 显示新的Fragment
-
             // 更新当前面板Fragment的引用
             if (containerId == leftContainerId) leftPaneFragment = newFragment;
             if (containerId == rightContainerId) rightPaneFragment = newFragment;
@@ -287,6 +259,7 @@ public class TabManager {
         FragmentTransaction transaction = fragmentManager.beginTransaction(); // 开启Fragment事务
         action.accept(transaction); // 执行具体的事务操作
         transaction.commit(); // 提交事务
+        Log.println(Log.INFO,"Transaction commit", "DONE!");
     }
 
     /**
@@ -317,9 +290,29 @@ public class TabManager {
                 // 添加到左侧容器
                 transaction.add(leftContainerId, editorFragment, tabType.name());
                 transaction.commit();
+                leftPaneFragment = editorFragment;
+                Log.println(Log.INFO,"LEFTPANE：","EDITOR");
+            }else{
+                //处理多个编辑器逻辑 目前的实现是直接替换前编辑器
+
+                remove(leftPaneFragment);
+                editorFragment = createFragmentForTab(tabType, file);
+                fragmentMap.put(tabType, editorFragment);
+                // 添加到左侧容器
+                transaction.add(leftContainerId, editorFragment, tabType.name());
+                transaction.commit();
+                leftPaneFragment = editorFragment;
+                Log.println(Log.INFO,"LEFTPANE：","NEW EDITOR");
             }
 
             // 隐藏当前终端
+            Log.println(Log.INFO,"TERMINAL IS","being hiding!!");
+            if(fragmentMap.get(TabType.TERMINAL) == null){
+                Log.println(Log.INFO,"TERMINAL IS","NOT IN MAP");
+            }
+            if(!fragmentMap.get(TabType.TERMINAL).isVisible()){
+                Log.println(Log.INFO,"TERMINAL IS","NOT VISIABLE");
+            }
             if (fragmentMap.get(TabType.TERMINAL) != null &&
                     fragmentMap.get(TabType.TERMINAL).isVisible()) {
                 hideFromLeftPane(fragmentMap.get(TabType.TERMINAL));
@@ -408,11 +401,13 @@ public class TabManager {
             // 执行隐藏操作
             FragmentTransaction transaction = fragmentManager.beginTransaction();
             transaction.hide(fragment);
+            Log.println(Log.INFO,"HIDE LEFTFRAGMENT","hide!");
             transaction.commit();
 
             // 清空当前 Fragment 引用
             if (leftPaneFragment == fragment) {
                 leftPaneFragment = null;
+                Log.println(Log.INFO,"LEFTPANE：", "NULL");
             }
 
             // 唤醒等待线程
@@ -488,6 +483,7 @@ public class TabManager {
             // 更新 Fragment 引用和 fragmentMap
             if (leftPaneFragment == fragment) {
                 leftPaneFragment = null;
+                Log.println(Log.INFO,"LEFTPANE：", "NULL");
             }
             if (rightPaneFragment == fragment) {
                 rightPaneFragment = null;
